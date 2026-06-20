@@ -1,0 +1,94 @@
+一、选定的连接引脚
+功能	AI主板 (XIAO ESP32-S3)	显示板 (ESP32-C3-DevKitM-1)	说明
+SDA	D6 (GPIO6)	GPIO4	I2C 数据线
+SCL	D7 (GPIO7)	GPIO5	I2C 时钟线
+GND	GND	GND	必须共地
+为什么选 GPIO4 和 GPIO5？
+从引脚图看，GPIO4 和 GPIO5 是普通 GPIO，无特殊启动功能（如 BOOT、USB），适合做 I2C。而且它们彼此相邻，方便接线。
+
+二、显示板（ESP32-C3）上其他外设连接
+OLED 屏幕 (1.3寸 SSD1306, I2C)
+
+VCC → 3.3V
+
+GND → GND
+
+SDA → GPIO21（图中 U0TXD，但可作为普通 SDA）
+
+SCL → GPIO20（图中 U0RXD，可作为普通 SCL）
+
+DS3231 时钟模块 (I2C)
+
+VCC → 3.3V
+
+GND → GND
+
+SDA → GPIO21（与 OLED 并联）
+
+SCL → GPIO20（与 OLED 并联）
+
+注意：GPIO21/20 也是 USB 转串口的引脚（U0TXD/U0RXD），如果只是用于 I2C，不影响串口下载（下载时自动切换）。如果担心冲突，也可以改用其他空闲引脚，如 GPIO8/GPIO9，但需要确保没有其他功能。这里采用 GPIO21/20 是为了兼容常见示例。
+
+三、完整接线示意图（文字版）
+text
+AI主板 (XIAO ESP32-S3)               显示板 (ESP32-C3-DevKitM-1)
+----------------------               ----------------------------
+  D6 (GPIO6)  ────────────────→      GPIO4  (SDA)
+  D7 (GPIO7)  ────────────────→      GPIO5  (SCL)
+  GND         ────────────────→      GND
+
+                                      显示板上：
+                                      OLED SDA  → GPIO21
+                                      OLED SCL  → GPIO20
+                                      DS3231 SDA → GPIO21 (并联)
+                                      DS3231 SCL → GPIO20 (并联)
+四、代码修改（显示板侧）
+在显示板的 Arduino 代码中，需要做以下调整：
+
+1. 定义与 AI 主板通信的 I2C 从机引脚（使用 Wire1）
+cpp
+#define I2C_SLAVE_SDA 4   // 对应 GPIO4
+#define I2C_SLAVE_SCL 5   // 对应 GPIO5
+#define SLAVE_ADDR 0x08
+
+void setup() {
+  // 初始化从机 I2C (接收 AI 主板数据)
+  Wire1.begin(SLAVE_ADDR, I2C_SLAVE_SDA, I2C_SLAVE_SCL, 100000);
+  Wire1.onReceive(receiveEvent);
+}
+2. 初始化 OLED 和 RTC 的 I2C（使用默认 Wire，但需指定引脚）
+因为 ESP32-C3 的默认 Wire 引脚不一定是 GPIO21/20，需要在 Wire.begin() 中显式指定：
+
+cpp
+void setup() {
+  // 初始化 OLED/RTC 的 I2C 总线 (GPIO21 = SDA, GPIO20 = SCL)
+  Wire.begin(21, 20);   // SDA=21, SCL=20
+  
+  // 然后初始化 OLED 和 RTC
+  u8g2.begin();
+  rtc.begin();
+}
+3. 注意 U8g2 库的构造函数
+如果使用硬件 I2C，构造函数不变（自动使用 Wire 实例）：
+
+cpp
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
+五、AI 主板（XIAO）代码无需修改
+AI 主板发送数据时，使用的 Wire.begin() 作为主机，不需要指定引脚（默认 D6/D7），所以代码不变。
+
+六、验证步骤
+上传显示板代码：先上传显示板程序，确保 OLED 能显示时间（RTC 正常）。
+
+测试 I2C 从机：在显示板程序中添加串口打印，当收到数据时打印 receivedData.heartRate 等，验证通信。
+
+上传 AI 主板代码：上传并执行双击手势，观察显示板是否收到数据并切换屏幕。
+
+七、常见问题
+编译错误 'Wire1' was not declared：ESP32-C3 核心版本需 ≥ 2.0.14，请升级。
+
+屏幕不显示：检查 OLED 的 SDA/SCL 是否接对 GPIO21/20，运行 I2C 扫描程序确认地址。
+
+双板通信无响应：检查 GPIO4/5 接线是否正确，两块板子 GND 是否相连。
+
+现在你可以按照这个方案连接两块板子，所有功能（手势、姿态、心率血氧、番茄钟、OLED 显示）将正常运行。如果遇到具体问题，请提供串口输出或编译错误信息。
+

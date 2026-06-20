@@ -1,0 +1,33 @@
+# Arduino
+*.ino.elf
+*.ino.hex
+*.ino.bin
+*.ino.with_bootloader.bin
+build/
+build-*/
+
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Dependencies
+libraries/
+
+# Misc
+*.exe
+*.zip
+*.jpg
+*.png
+deepseek_data*/
+
