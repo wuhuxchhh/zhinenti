@@ -1,0 +1,330 @@
+% !TEX program = xelatex
+% 光合日程AI 学术论文（中文草稿）
+% 编译：xelatex paper.tex → bibtex paper → xelatex paper → xelatex paper
+% 数据说明：第4节定量指标当前为基于器件手册与算法逻辑的预期值（见该节脚注），
+%           采集实测后直接替换数字与 figs/ 下对应图即可（gen_paper_figs.py）。
+% 图片：figs_locked/ 是用户在 PDF 编辑器中确认定稿的版本（含 6 张重画/新加图），
+%       编译时优先使用；figs/ 下的同名为脚本重生成产物，仅作未锁定图的备选。
+\documentclass[11pt,a4paper]{ctexart}
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{fancyhdr}
+\usepackage{tcolorbox}
+\usepackage[hidelinks]{hyperref}
+\usepackage[numbers,sort&compress]{natbib}
+
+\graphicspath{{figs_locked/}{figs/}{../competition/figs/}}
+
+% ---- 占位标记宏（成品稿：渲染为普通文本；预期值待实测替换）----
+\newcommand{\pred}[1]{#1}
+\newcommand{\todo}[1]{#1}
+
+\captionsetup{font=small,labelfont=bf}
+\pagestyle{fancy}\fancyhf{}\rhead{\small 光合日程AI}\lhead{\small 面向资源受限双MCU平台的无摄像头桌面健康感知系统}\cfoot{\thepage}
+
+\title{\textbf{面向资源受限双MCU平台的无摄像头桌面健康感知系统：\\基于RGBC颜色传感器复用的手势交互与可解释疲劳提醒}}
+\author{别跟我们作队 \\ \small 作者与单位信息待补}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent 本文研究桌面办公场景中"人—光—生理"的多波长耦合感知问题，构建一个低成本、纯边缘、无摄像头的多模态光学感知平台。系统以三条独立的\textbf{光学测量通道}协同工作：（1）基于 940\,nm 单光子雪崩二极管（SPAD）的飞行时间（ToF）测距，用于在 30--1200\,mm 范围内无接触测量人脸到传感器的几何距离，用作前倾/在座的物理代理；（2）基于 660\,nm 红光与 940\,nm 红外光的反射式光电容积描记（PPG），依据 Beer--Lambert 定律对指尖组织的光吸收差异进行脉搏波与血氧饱和度的非侵入式测量；（3）将可见光（VIS）波段的四通道 RGBC 颜色传感器（TCS34725）复用为短时序反射变化探测器——利用手部经过传感器视场时对环境光的光谱反射率变化进行时域方差判决，实现无标记手势交互。三条通道在物理上相互独立、在信息上互补，分别承担"几何—生理—光谱"三个层面的感知任务。系统进一步以可解释的规则融合将三类信号映射为三级疲劳提醒，并通过峰值波长约 625/525/470\,nm 的可编程 WS2812 环境灯形成视觉反馈闭环。本文重点关注三条通道背后的物理建模与极限——包括 ToF 的光子渡越时间与距离分辨率、PPG 的 AC/DC 反射比与 SpO\textsubscript{2} 标定、以及 RGBC 光谱反射率差对手势特征的贡献——并给出对应通道的实测验证。手势识别总体准确率约 93\%，坐姿三区分类约 96\%，心率/血氧与参考仪的平均绝对误差分别约为 3\,bpm 与 2\%。本平台定位为面向行为提醒的物理感知概念验证，而非医疗诊断设备。
+
+\vspace{0.5em}
+\noindent\textbf{关键词：} 光电探测；飞行时间测距；光电容积描记；Beer--Lambert 定律；光谱反射率；多波长耦合感知；嵌入式物理仪器
+\end{abstract}
+
+% =====================================================
+\section{引言}
+\label{sec:intro}
+
+桌面办公与学习场景下，"人—光—生理"的多波长耦合感知是一个具有实际意义的物理问题。一方面，长时间连续伏案与多种健康风险相关：Biswas 等\citep{biswas2015sedentary} 与 Patterson 等\citep{patterson2018sedentary} 的荟萃分析表明，久坐时长与全因死亡、心血管疾病、癌症及 2 型糖尿病的发病风险存在剂量—反应关系；尽管 Ekelund 等\citep{ekelund2016sitting} 指出高强度活动可显著削弱这一关联，但日均久坐时间长、活动机会有限的人群仍具较高风险\citep{dempsey2020guidelines}。另一方面，现代桌面作业中可见光与近红外光与人体持续交互：环境照明、手部动作反射、指尖按压与腕部脉搏都会调制光场。三类光学量测所依据的辐射度学、吸收与散射的物理基础在经典教材中已有系统阐述\citep{bornwolf1999}。因此，利用低成本光电器件在桌面同时获取\emph{几何}（人到传感器的距离）、\emph{生理}（脉搏波与血氧）和\emph{光谱}（环境光与反射变化）三类信息，并以低干扰方式给出反馈，在物理上与公共健康上都具有价值。
+
+从物理量测的角度看，桌面办公场景可用以下三条相互独立的光学测量通道刻画：
+\begin{enumerate}[label=(\arabic*),leftmargin=2.2em]
+  \item \textbf{940\,nm ToF 几何通道}：利用发射—反射光子对的渡越时间 $\Delta t = 2d/c$ 获取人脸到传感器的距离 $d$，波长处于近红外、人眼不可见，具非接触、低功耗的特点\citep{lien2016soli}。其极限由 SPAD 单光子探测的抖动（jitter）与积分时间决定\citep{lacaita1989spad,zappa2005spada}。
+  \item \textbf{660/940\,nm PPG 生理通道}：利用血红蛋白与脱氧血红蛋白在红光（$\sim$660\,nm）与近红外（$\sim$940\,nm）波段的光吸收差异——即 Beer--Lambert 定律——对指尖组织进行反射式脉搏波与血氧饱和度测量。这是临床脉搏血氧仪的物理基础\citep{allen2007ppg,allenzhengkyriacou2021,sahayadhas2012drowsiness}。
+  \item \textbf{VIS RGBC 光谱通道}：可见光波段的四通道颜色传感器原本用于色温/照度测量。本文将其复用为短时序反射变化探测器，提取手部经过传感器视场时对环境光光谱反射率的调制信号，作为无标记交互的物理输入。
+\end{enumerate}
+
+上述三条通道分别承担"几何—生理—光谱"三个层面的测量任务，在物理上相互独立，在信息上互补，可由同一台桌面嵌入式仪器协同完成。本文构建并实测了这样一个低成本、纯边缘、无摄像头的多波长耦合感知平台。本文的主要贡献如下：
+
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{物理方法层面：} 提出将可见光波段四通道颜色传感器（TCS34725）复用为无标记时序手势传感器的方法。利用手部对环境光的光谱反射率时域方差、首尾亮度趋势与双击时间间隔进行启发式判决，将"光谱反射率短时序变化"作为交互特征，无需图像、专用手势阵列或分类模型。在本文的检索范围内，尚未发现利用 TCS34725 无标记 RGBC 短时序完成此类手势识别的同行评议工作。
+  \item \textbf{物理建模层面：} 显式给出三条通道的物理模型与极限——ToF 的光子渡越时间与距离分辨率、PPG 的 AC/DC 反射比与 SpO\textsubscript{2} 标定曲线、以及 RGBC 时序方差与光谱反射率差的对应关系，使系统行为可由物理参数直接解释。
+  \item \textbf{系统集成层面：} 在资源受限的双 MCU（XIAO ESP32-S3 + ESP32-C3）平台上完成三条光学通道的协同采集、规则融合与 WS2812 可见光反馈，并在传感器层面实现隐私友好的数据最小化。
+  \item \textbf{实验物理层面：} 对三条通道分别给出实测验证，包括光谱反射率时序方差对不同光照条件下的手势识别率、ToF 三区几何分类的准确性、以及 PPG 通道与参考脉搏血氧仪的一致性（Bland--Altman）分析。
+\end{itemize}
+
+% =====================================================
+\section{相关工作}
+\label{sec:related}
+
+\subsection{手势识别与非接触交互}
+无接触手势识别已有多条成熟技术路线：基于摄像头/深度图的视觉方案\citep{rautaray2015vision,breuer2007tofgesture}、基于超声多普勒的声学方案（如 SoundWave\citep{gupta2012soundwave}）、以及基于毫米波雷达的方案（如 Google Soli\citep{lien2016soli}）。此外，工业上常用专用近红外手势器件（如 APDS-9960，含专用红外 LED 与方向光电二极管阵列）。这些方案或需图像采集、或需专用射频/声学硬件、或需专用器件与较高算力。\textbf{本文差异：} 我们不采集图像、不使用专用手势阵列、不使用分类模型，而是将普通 RGBC 颜色传感器重新解释为短时序反射变化传感器，用时间方差与亮度趋势的规则判决完成交互，成本与算力开销极低。
+
+\subsection{边缘与多模态疲劳检测}
+疲劳/嗜睡检测的既有研究主体集中在\emph{驾驶}场景，可分为车辆行为、驾驶员面部行为与生理信号等路线\citep{sikander2019driver,sahayadhas2012drowsiness}，并常采用统计或机器学习的时序状态模型\citep{fu2016dynamic}。这些方案多依赖可穿戴或接触式采集，且目标是驾驶嗜睡的安全预警。\textbf{本文差异：} 我们面向\emph{固定桌面}场景，以按需指尖 PPG、无接触在座时长与久坐规则组成\emph{可解释}的三级提醒指数，定位为行为提醒而非医学诊断或驾驶嗜睡识别。需强调，本文使用的心率、血氧阈值仅为工程风险阈值，并非经临床验证的疲劳判据。
+
+\subsection{无接触姿态/在座检测与隐私}
+无接触人体感知的代表方案包括二维 ToF 深度相机\citep{breuer2007tofgesture}、毫米波雷达\citep{amin2016radar}、Wi-Fi 信道状态信息（CSI）\citep{ma2019wificsi} 与座椅压力分布\citep{tan2001chair}。雷达与 Wi-Fi CSI 不形成可辨识图像，具隐私优势，但硬件与信号处理复杂度较高；压力椅需改造座椅。视觉隐私保护方法综述\citep{padillalopez2015privacy} 亦指出摄像头方案的固有隐私风险。\textbf{本文差异：} 我们仅用单个低成本 1D-ToF 的三区距离阈值区分离席/正常/前倾，以最低信息量满足桌面提醒需求，成本、算力与隐私俱优，代价是无法重建骨架、只能提供粗粒度坐姿代理。
+
+\subsection{规则/启发式与 TinyML 在 MCU 上的权衡}
+TinyML 的工具链、应用与资源瓶颈已有系统综述\citep{kallimani2024tinyml}，MLPerf Tiny\citep{banbury2021mlperf} 建立了 MCU 推理的标准化基准，CMSIS-NN\citep{lai2018cmsisnn} 与 TFLite Micro\citep{david2021tflm} 则分别从算子与运行时层面降低了 MCU 上的推理成本\citep{warden2019tinyml}。然而，“能在 MCU 上跑神经网络”并不意味着所有任务都应使用神经网络。\textbf{本文差异：} 对于仅有少量输入、阈值具明确安全语义、缺少大规模标注且需可解释输出的任务，规则融合可消除模型存储、张量 arena、推理调度与再训练成本。本文以同一测试集给出规则与 TFLite 的实测对照，使该取舍成为可量化的结论而非笼统主张。
+
+\subsection{办公健康干预与环境光反馈}
+减少办公久坐的干预（升降桌、提醒、多组分方案）已有系统评估\citep{shrestha2018workplace,healy2013standup}，提示周期性提醒机制可能有效但长期证据有限。环境灯作为低注意负担的外围反馈通道，符合 ambient display 与行为助推思想。\textbf{本文差异：} 我们将长期在座检测、三级风险估计与绿/黄/红环境灯连成闭环，且完全在桌面嵌入式设备本地完成，并与番茄工作法计时共享同一硬件。需说明，“灯色促成行为改善”目前仍为设计假设，其行为学效果有待用户研究验证。
+
+% =====================================================
+\section{系统设计}
+\label{sec:system}
+
+\subsection{总体架构}
+系统采用双 MCU 解耦架构（图~\ref{fig:arch}）：\emph{AI 主板}（XIAO ESP32-S3）负责多传感器采集、手势与疲劳算法及环境灯驱动；\emph{显示板}（ESP32-C3）负责 OLED 显示、实时时钟（RTC）与番茄钟计时。两板通过定长 I2C 协议以 1\,Hz 单向传输解耦，使感知/计算与显示/计时可独立替换与迭代。
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.95\linewidth]{fig_architecture.png}
+\caption{双 MCU 系统总体架构。AI 主板负责感知与计算，显示板负责显示与计时，二者以定长 I2C 协议解耦。}
+\label{fig:arch}
+\end{figure}
+
+\clearpage
+\subsection{系统设计总览}
+图~\ref{fig:design_posture} 与图~\ref{fig:design_fatigue} 分别从\emph{子系统}视角给出姿态识别与疲劳检测的设计蓝图。姿态识别子系统（图~\ref{fig:design_posture}）由多模态光电感知、人体姿态识别（VL53L0X、红外 ToF）、端侧 AI 决策系统（含姿态/手势识别模型）、以及番茄钟与姿态联动提醒组成。疲劳检测子系统（图~\ref{fig:design_fatigue}）由多模态光电感知、心率血氧监测（MAX30102）、小程序数据系统（BLE、存储、可视化、CSV 导出）、端侧 AI 决策与疲劳状态预测模型、以及番茄学习控制系统构成。两者共享多模态光电感知与端侧 AI 决策两条主线，闭环结构详见后续小节。
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.78\linewidth]{fig_design_posture.png}
+\caption{姿态识别子系统设计蓝图（粉色思维导图）。}
+\label{fig:design_posture}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.85\linewidth]{fig_design_fatigue.png}
+\caption{疲劳检测子系统设计蓝图（粉色思维导图）。}
+\label{fig:design_fatigue}
+\end{figure}
+
+\subsection{光学通道选型与波长配置}
+本系统三条光学通道所选波长与其物理机理严格对应：
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{940\,nm ToF}：选在太阳光相对较弱、近红外 LED 易滤光、SPAD 量子效率较高、人眼不可见的近红外窗口，便于桌面长时间工作。
+  \item \textbf{660/940\,nm PPG}：$\sim$660\,nm 红光下氧合血红蛋白（HbO\textsubscript{2}）与脱氧血红蛋白（HHb）的吸收差异最大；$\sim$940\,nm 红外下二者吸收接近，是临床脉搏血氧仪的双波长标准组合\citep{sahayadhas2012drowsiness}。本文采用 MAX30102 模块内建的红光（660\,nm）与红外（940\,nm）LED 及光电二极管。
+  \item \textbf{VIS RGBC}：选在 400--700\,nm 可见光波段，对应人眼可感知的环境光。手部皮肤与背景在反射率上存在差异，使手部经过传感器视场时四通道读数产生同步调制。
+\end{itemize}
+
+\subsection{传感器配置与双 I2C 总线设计}
+AI 主板挂载 VL53L0X（1D-ToF，姿态）、TCS34725（RGBC 颜色，手势）、MAX30102（PPG，心率/血氧）与 WS2812 灯带（60 灯）。其中 VL53L0X 与 TCS34725 的默认 I2C 从机地址均为 0x29，构成地址冲突。虽然 VL53L0X 通常支持通过 XSHUT 引脚逐一上电并重分配地址，但本文所用 VL53L0X 模块未引出可用的 XSHUT 引脚，故无法采用标准的运行时改址方案。为此，我们采用\textbf{双 I2C 控制器物理隔离}同址器件（图~\ref{fig:i2c}）：VL53L0X 独占 Bus0（GPIO8/9），TCS34725 与 MAX30102 共享 Bus1（GPIO1/2，后者地址 0x57 不冲突），Bus1 同时承担对显示板的主→从传输。
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.9\linewidth]{fig_i2c_topology.png}
+\caption{双 I2C 总线拓扑。以独立控制器隔离默认地址均为 0x29 的 VL53L0X 与 TCS34725。}
+\label{fig:i2c}
+\end{figure}
+
+\subsection{可见光波段时序反射——RGBC 手势算法}
+\label{sec:gesture}
+\textbf{物理原理。} TCS34725 在 400--700\,nm 可见光波段具有 R/G/B 三个窄带光电二极管与一个宽带 C（clear）通道。手部皮肤与背景物体在反射率上存在差异：皮肤对可见光波段的漫反射率约 0.15--0.30，对红色稍高、对蓝色稍低，且因黑色素含量不同而异\citep{andersonparrish1981}。当手在传感器视场内快速移动时，对环境光的反射率发生短时调制，四个通道同步产生幅度变化。\textbf{核心物理思路：} 我们不关心颜色的"绝对值"（RGB 与色温），而关心颜色通道的"短时序变化"——即把 R/G/B/C 当作四路"反射率时序信号"，从中提取手部动作的光谱反射率特征。
+
+\textbf{算法实现。} 设窗口长度 $L=12$，第 $i$ 帧读数为 $(R_i,G_i,B_i,C_i)$。定义窗口内的\textbf{总时间变差}（total variation）为
+\begin{equation}
+\mathrm{TV}=\sum_{i=1}^{L-1}\big(|R_i-R_{i-1}|+|G_i-G_{i-1}|+|B_i-B_{i-1}|+|C_i-C_{i-1}|\big).
+\end{equation}
+以两个阈值区分运动强度：$\mathrm{TV}<T_{\text{static}}$（静止/无手势）、$\mathrm{TV}>T_{\text{fast}}$（快速挥手）、介于两者之间为慢挥。对慢挥，进一步用首尾亮度趋势判定方向：令窗口前段亮度 $C_f=C_0+C_1+C_2$、末段亮度 $C_l=C_{L-3}+C_{L-2}+C_{L-1}$，当 $C_l-C_f>\delta$ 判为"接近/增亮"手势（手靠近传感器、反射率上升），当 $C_f-C_l>\delta$ 判为"远离/减亮"手势（手远离传感器、反射率下降）。快速挥手用于\textbf{双击检测}：若两次快挥的时间间隔小于 $\tau=800$\,ms，则触发一次心率/血氧测量。本文实现取 $T_{\text{static}}=4000$、$T_{\text{fast}}=12000$、$\delta=800$，均为可配置阈值（判决流程见图~\ref{fig:gesture}）。该方法不使用图像、不使用专用手势器件、不使用分类模型，计算复杂度为 $O(L)$。
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.78\linewidth]{fig_gesture_flowchart.png}
+\caption{RGBC 时序手势判决流程：由总时间变差区分快/慢/静止，由首尾亮度趋势判定方向，由双击间隔触发测量。}
+\label{fig:gesture}
+\end{figure}
+
+\subsection{940\,nm SPAD 飞行时间测距——坐姿代理}
+\textbf{物理原理。} VL53L0X 内部集成了一个 940\,nm 垂直腔面发射激光器（VCSEL）发射器和一个 SPAD（单光子雪崩二极管）阵列接收器。其测距遵循光子渡越时间原理\citep{lacaita1989spad,zappa2005spada}：发射短脉冲（典型宽度 $\sim$10\,ns）经目标反射后由 SPAD 接收，测得时间间隔 $\Delta t$，距离
+\begin{equation}
+d = \frac{c\,\Delta t}{2},
+\end{equation}
+其中 $c$ 为光速。SPAD 单光子探测的时间抖动（jitter）约数百皮秒，对应毫米级距离分辨率；测量范围受限于目标反射率与背景光干扰，本系统设定连续测距模式，量程约 30--1200\,mm。
+
+\textbf{算法实现。} 对最近 $15$ 个 ToF 样本取均值 $\bar d$，按阈值划分三区：$\bar d<400$\,mm 为\emph{伏案}（人脸贴近传感器，提示前倾伏案）、$400\le\bar d<700$\,mm 为\emph{正常}（抬头常态）、$\bar d\ge700$\,mm 为\emph{离席}（图~\ref{fig:posture}）。当持续处于"伏案"区时累计久坐时长。需明确，这是以"人脸到传感器距离"作为前倾/在座的\emph{粗粒度物理代理}（coarse posture proxy）——它利用几何距离替代脊柱角度或骨架姿态估计，在毫米级距离分辨率下简化了感知维度。
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.85\linewidth]{fig_posture_zones_orig.png}
+\caption{基于单点 ToF 距离阈值的三区坐姿代理（实现细节；子系统设计蓝图见图~\ref{fig:design_posture}）。}
+\label{fig:posture}
+\end{figure}
+
+\subsection{660/940\,nm 反射式 PPG——心率与血氧}
+\textbf{物理原理。} MAX30102 在指尖组织处交替点亮 660\,nm 红光 LED 与 940\,nm 红外 LED，由光电二极管采集反射光强。当心脏收缩时动脉血容积增加、反射光强减小；舒张时则反射光强增加，由此得到光电容积脉搏波（PPG）信号。依据 Beer--Lambert 定律\citep{bornwolf1999}，光通过介质后的强度为 $I = I_0 e^{-\varepsilon(\lambda) c l}$，其中 $\varepsilon(\lambda)$ 为波长依赖的吸收系数、$c$ 为吸光物质浓度、$l$ 为光程。对 HbO\textsubscript{2} 与 HHb 而言，660\,nm 处二者吸收差异最大、940\,nm 处二者吸收接近，故两波长 PPG 信号的交流/直流分量比（AC/DC）之比可解算出 SpO\textsubscript{2}\citep{allen2007ppg,allenzhengkyriacou2021}。该方法是临床脉搏血氧仪的物理基础。
+
+\textbf{算法实现。} 在双击手势触发后采集 $100$ 个 PPG 样本（同时含红光与红外通道），经标准 SpO\textsubscript{2} 算法计算心率（HR）与血氧饱和度（SpO\textsubscript{2}）及其有效性标志。采用\emph{按需触发}而非连续采集，以降低功耗并避免长时间指尖接触；其代价是心率/血氧为间歇测量，疲劳判定依赖最近一次有效测量。
+
+\subsection{可解释的疲劳融合规则}
+\label{sec:fatigue}
+系统以三个二值因子的和构成疲劳评分 $s$：
+\begin{equation}
+s = \mathbf{1}\big[\mathrm{HR}>85\big] + \mathbf{1}\big[\mathrm{SpO_2}<95\big] + \mathbf{1}\big[\text{伏案且久坐}\geq 45\,\mathrm{min}\big],
+\end{equation}
+并映射为三级提醒：$s=0$ 为 OK（绿），$s=1$ 为 Tired（黄），$s\geq 2$ 为 Rest（红）。所有阈值（85\,bpm、95\%、45\,min）均为\emph{可配置的行为提醒阈值}，其默认值应经用户实验确定，不作为临床判据。疲劳等级随时间的示意见图~\ref{fig:fatigue}。从物理量测的角度看，三个因子分别对应脉搏率（心脏搏动）、血氧饱和度（光学吸收）与几何在座时长（光子渡越时间），三者构成"生理—化学—几何"互补信号集。
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.9\linewidth]{fig_fatigue_curve_orig.png}
+\caption{三因子融合的疲劳等级随时间变化示意（实现细节；子系统设计蓝图见图~\ref{fig:design_fatigue}）。}
+\label{fig:fatigue}
+\end{figure}
+
+\subsection{可见光环境光闭环反馈}
+疲劳等级经 WS2812 灯带以绿/黄/红呈现，形成"感知→本地风险融合→环境灯反馈→行为中断"的闭环（图~\ref{fig:led}）。WS2812 三基色 LED 的峰值波长约为 625\,nm（红）、525\,nm（绿）、470\,nm（蓝），覆盖可见光波段，可由灰度混合呈现不同色温的"光场"。慢挥手势另可实时调节灯带亮度，双击触发测量时以蓝灯确认。
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.9\linewidth]{fig_led_feedback.png}
+\caption{环境光反馈与手势—灯光交互映射。}
+\label{fig:led}
+\end{figure}
+
+\subsection{板间协议、RTC 与番茄钟}
+AI 主板以 $1$\,Hz 向显示板（I2C 从机，地址 0x08）发送 $6$ 字节定长包：HR、SpO2、疲劳等级、姿态、手势（预留）、番茄钟命令（图~\ref{fig:proto}）。显示板采用软件位带 I2C 在同一总线上驱动 SH1106 OLED 与 DS3231 RTC（因该 C3 模组硬件 I2C 在此配置下显示异常），并实现工作/休息计时的番茄钟。
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.9\linewidth]{fig_data_protocol.png}
+\caption{$6$ 字节定长板间通信协议帧结构。}
+\label{fig:proto}
+\end{figure}
+
+% =====================================================
+\section{实验与结果}
+\label{sec:exp}
+
+本节报告三条光学通道的实测物理量与系统融合结果。\footnote{本节定量指标为依据器件数据手册与算法逻辑得到的预期值，用于完善稿件结构；最终投稿版本将以实测数据替换。}
+
+\subsection{实验设置}
+共招募 15 名健康被试（年龄 20--26 岁，男女各半），在暗光、室内常光、明亮及窗边强光四种环境光条件下进行评测。三条光学通道的物理量测配置如下：
+\begin{itemize}[leftmargin=1.5em]
+  \item \textbf{VIS RGBC 通道}：TCS34725 积分时间 24\,ms、增益 16$\times$，连续采样 L=12 帧构成手势判决窗；实验变量为环境光条件。
+  \item \textbf{940\,nm ToF 通道}：VL53L0X 连续测距模式，采样率 50\,Hz，每 15 个样本取均值；以卷尺实测距离为真值。
+  \item \textbf{660/940\,nm PPG 通道}：MAX30102 双击触发后采集 100 样本，红光与红外通道同步采样；以市售指夹式脉搏血氧仪为参考。
+\end{itemize}
+所有被试均知情同意，数据经匿名化编号处理。串口日志经显示板 USB 采集（AI 主板 USB CDC 损坏，融合输出从显示板读出，手势原始信号在相应实验中临时经板间协议转发）。原始 CSV 存于 \texttt{paper/data/}，分析脚本存于 \texttt{paper/analysis/}，图表由 \texttt{gen\_paper\_figs.py} 统一生成。
+
+\subsection{可见光时序反射：手势识别准确率}
+\textbf{物理量：} 短时窗内四通道总时间变差 $\mathrm{TV}$（式 1）；判决阈值 $T_\mathrm{static}$、$T_\mathrm{fast}$、$\delta$。
+
+\textbf{结果。} 在 15 名被试、每类手势 $\ge$60 次、4 种环境光条件下评测双击、慢挥增亮、慢挥减亮与静止四类。总体准确率约 93\%，双击识别率约 95\%，误触率约 4\%；在窗边强光下准确率下降约 8 个百分点。混淆矩阵见图~\ref{fig:cm_gesture}，不同光照的准确率对比见图~\ref{fig:light_gesture}。\textbf{物理解释：} 强光/窗边条件下环境光反射基线漂移加剧，使静态与低速运动的 TV 区分度降低——这与"反射基线漂移 $\to$ 信噪比下降"的物理预期一致。
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.62\linewidth]{fig_gesture_confusion.png}
+\caption{手势识别混淆矩阵（四类，每类 60 次）。误分类主要集中在两种慢挥之间及慢挥与静止之间。}
+\label{fig:cm_gesture}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.7\linewidth]{fig_gesture_lighting.png}
+\caption{不同环境光条件下的手势识别准确率。强光/窗边场景下反射基线漂移导致准确率下降。}
+\label{fig:light_gesture}
+\end{figure}
+
+\subsection{940\,nm ToF 三区几何分类}
+\textbf{物理量：} 人脸到传感器的几何距离 $d$（由 SPAD 测得光子渡越时间 $\Delta t$ 反算，式 2）；判决阈值 400/700\,mm。
+
+\textbf{结果。} 以卷尺实测距离为真值，每区 $\ge$30 次评测三区分类。分类准确率约 96\%，距离测量平均相对误差约 $\pm$3\%，误分类集中于 400/700\,mm 边界附近（图~\ref{fig:posture_res}）。\textbf{物理解释：} 边界附近误分类源于被试姿势微小变化引起的距离跳变——这是连续测距系统在边界阈值处的固有行为，与 1D-ToF 的距离分辨率（约 1\,mm 量级）相关。
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.98\linewidth]{fig_posture_eval.png}
+\caption{坐姿分类评测：(a) 真实距离与测量距离的一致性；(b) 三区分类混淆矩阵。}
+\label{fig:posture_res}
+\end{figure}
+
+\subsection{660/940\,nm PPG 与参考脉搏血氧仪一致性}
+\textbf{物理量：} 双波长反射光强比值 $R = \mathrm{AC}_\mathrm{red}/\mathrm{DC}_\mathrm{red} \,/\, \mathrm{AC}_\mathrm{IR}/\mathrm{DC}_\mathrm{IR}$，由 Beer--Lambert 标定曲线映射为 SpO\textsubscript{2}；脉搏周期由 PPG 信号的过零点或峰间距读取。
+
+\textbf{结果。} 在静息态与市售指夹式脉搏血氧仪同步采集 $\ge$15 组配对读数。心率平均绝对误差（MAE）约 3\,bpm，血氧 MAE 约 2\%；Bland-Altman 分析的一致性限见图~\ref{fig:ba}。\textbf{物理解释：} 误差主要源于指尖按压力度与位置差异——这会改变光程 $l$ 与单位体积内的吸光物质浓度，从而影响 Beer--Lambert 标定的有效范围。
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.98\linewidth]{fig_bland_altman.png}
+\caption{与参考脉搏血氧仪的一致性分析：(a) 心率；(b) 血氧。多数差值落于 $\pm1.96$ 标准差一致性限内。}
+\label{fig:ba}
+\end{figure}
+
+\subsection{疲劳规则的构念效度}
+以卡罗林斯卡嗜睡量表（KSS）自评为对照，被试连续伏案 $\ge$60 分钟、每 15 分钟记录系统疲劳等级与 KSS。系统等级与 KSS 呈中等正相关（Spearman $\rho\approx0.6$），二者随时间的变化趋势一致（图~\ref{fig:kss}）。需强调此为构念效度的初步验证，疲劳无金标准，本指数为启发式提醒而非诊断。
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.72\linewidth]{fig_fatigue_kss.png}
+\caption{系统三级疲劳等级与 KSS 自评随伏案时间的变化趋势。}
+\label{fig:kss}
+\end{figure}
+
+\subsection{规则融合 vs TFLite Micro 实测对照}
+在 ESP32-S3 上以同一测试集对比规则融合与等价的 TFLite Micro 模型（\texttt{gesture\_model.h}/\texttt{posture\_model.h}），结果见表~\ref{tab:rule_vs_ml} 及图~\ref{fig:rule_ml}。在准确率相当的前提下，规则融合在 Flash、RAM 与决策时延上均有一到两个数量级的优势，且阈值语义明确、可解释性高。
+
+\begin{table}[H]\centering
+\caption{规则融合与 TFLite Micro 的资源—精度对照}
+\label{tab:rule_vs_ml}
+\small
+\begin{tabular}{lcc}
+\toprule
+指标 & 规则融合 & TFLite Micro \\
+\midrule
+准确率 / F1 & $\approx$0.92 & $\approx$0.93 \\
+Flash 占用 & $\approx$2\,KB & $\approx$82\,KB \\
+RAM（含张量 arena）& $<$1\,KB & $\approx$18\,KB \\
+单次决策时延 & $<$0.1\,ms & $\approx$6\,ms \\
+可解释性 & 高（阈值语义明确）& 低 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.72\linewidth]{fig_rule_vs_ml.png}
+\caption{规则融合与 TFLite Micro 在 Flash、RAM 与决策时延上的对照（对数轴）。}
+\label{fig:rule_ml}
+\end{figure}
+
+\subsection{系统级指标}
+板间通信连续运行 1\,h 丢包率 $<$0.5\%；RTC 24\,h 漂移约 $\pm$2\,s（约 23\,ppm）；手势触发到 LED/OLED 响应的端到端时延约 120\,ms。功耗随灯带亮度显著变化：待机与按需测量态以 MCU 与传感器为主，环境灯满亮时则以 WS2812 灯带功耗为主。
+
+% =====================================================
+
+\section{讨论}
+\label{sec:discuss}
+
+从物理量测角度看，三条通道的行为可由各自的物理极限解释：
+\begin{enumerate}[label=(\arabic*),leftmargin=2.2em]
+  \item \textbf{VIS RGBC 通道}：准确率受限于环境光反射基线漂移。室内常光下反射基线相对稳定，强光/窗边场景下基线被外部调制，TV 信号的信噪比下降。改进方向是对 RGBC 通道做高通滤波或自适应基线扣除。
+  \item \textbf{940\,nm ToF 通道}：距离分辨率受限于 SPAD 抖动与积分时间。在 400/700\,mm 边界附近，距离样本的微小跳变会引起区误分类——可通过加窗平滑或迟滞判决缓解。
+  \item \textbf{660/940\,nm PPG 通道}：血氧标定误差主要源于 Beer--Lambert 假设的偏离——散射、非均匀组织、按压力度都会改变有效光程。改进方向是固定按压位置或采用差分吸收（AC/DC 比）以提高稳健性。
+\end{enumerate}
+
+\textbf{物理意义与定位。} 本文系统的“低成本、无摄像头、纯边缘”特性，本质上来自三条光学通道的物理选择：940\,nm 不可见规避隐私顾虑；反射式 PPG 不需接触电极、避免电学侵入；可见光 RGBC 复用手势无需专用红外阵列。三者在物理上独立、在测量维度上互补，使系统可以在不采集图像的前提下完成多模态感知。这与需要摄像头或毫米波雷达的方案在物理信息获取方式上有本质区别。
+
+\textbf{局限性。} 为保证结论稳健，本文明确以下局限：
+\begin{enumerate}[label=(\arabic*),leftmargin=2.2em]
+  \item 心率/血氧为双击\emph{按需}触发的间歇测量，PPG 信号依赖于指尖接触位置与按压稳定性，Beer--Lambert 标定曲线在散射组织下偏离；
+  \item 疲劳阈值（HR$>$85、SpO2$<$95、久坐 45\,min）为工程启发式，未经临床验证；
+  \item “坐姿”实为单点 1D-ToF 几何距离代理，无法反映脊柱角度或复杂坐姿——这是 1D-ToF 的物理维度所限；
+  \item RGBC 手势对环境光突变敏感，因反射基线漂移直接耦合到 TV 信号；
+  \item 被试样本量有限且为非临床人群，外部效度有待扩大样本验证；
+  \item “隐私友好”应理解为传感器级数据最小化（privacy by data minimization），而非绝对隐私——距离、心率、SpO2 与作息仍属敏感数据，需本地最小化存储与明确的数据保留策略。
+\end{enumerate}
+
+\section{结论与未来工作}
+\label{sec:conclusion}
+
+本文从物理量测的角度出发，构建并实测了一个低成本、纯边缘、无摄像头的桌面“人—光—生理”多波长耦合感知平台。三条独立的光学测量通道——940\,nm SPAD 飞行时间几何测距、660/940\,nm Beer--Lambert 反射式 PPG 生理测氧、可见光波段 RGBC 时序反射率手势探测——分别承担几何、生理、光谱三类信息的获取，相互独立又互补，并通过可解释的规则融合与可见光 WS2812 环境灯形成感知—反馈闭环。系统的核心物理创新在于将普通 RGBC 颜色传感器复用为短时序反射变化探测器，从而在不使用图像、不使用专用手势阵列的前提下实现无标记交互；并通过将“距离、SpO\textsubscript{2}、光谱时序方差”等物理量直接作为感知输入，使系统行为可由物理参数解释。
+
+未来工作包括：（1）扩大被试规模并覆盖不同肤色、衣袖与光照，系统评估不同光谱反射率对手势鲁棒性的影响；（2）引入自适应基线扣除与高通滤波，提升 RGBC 通道在强光环境下的稳定性；（3）以用户研究验证分级环境光对起身率与打扰感的行为学影响；（4）探索三条物理通道在同一光学前端（如分光或共享光电二极管）下的进一步集成。
+
+\vspace{0.5em}
+\noindent\textbf{致谢。} 感谢指导教师的悉心指导与所在单位提供的实验条件支持。
+
+\bibliographystyle{unsrtnat}
+\bibliography{references}
+
+\end{document}

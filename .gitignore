@@ -24,10 +24,29 @@ Thumbs.db
 # Dependencies
 libraries/
 
+# Claude Code 本地配置（含 API key，绝不能 push）
+.claude/
+
+# LaTeX 编译产物（再编译时生成）
+*.aux
+*.log
+*.out
+*.toc
+*.bbl
+*.blg
+
+# paper/paper光.pdf（与 paper.pdf 同内容，仅多了页眉，重复版本不 push）
+paper/paper光.pdf
+
+# 我用 pypdf 提取的 PDF 临时文本副本
+paper/_*.txt
+competition/_*.txt
+
 # Misc
 *.exe
 *.zip
 *.jpg
 *.png
+*.jp2
 deepseek_data*/
 

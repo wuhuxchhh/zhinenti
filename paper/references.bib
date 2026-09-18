@@ -1,0 +1,328 @@
+% references.bib — 光合日程AI 论文参考文献
+% 规则：只收录已核实真实存在的条目（调研 agent 2026-07 逐条交叉核实 + Crossref API 二次核实）。
+% 分组见 academic-paper skill 的 related work 主题 A-G。
+%
+% ===== H. 物理光学基础（2026-08 增补，物理视角改写配套）=====
+%  - bornwolf1999:  Beer-Lambert、辐射度学、干涉/衍射经典教材（Cambridge 7th ed, DOI 已验证）
+%  - andersonparrish1981: 皮肤光学经典，皮肤作为混浊介质的光学模型（J Invest Dermatol, DOI 已验证）
+%  - allen2007ppg:    PPG 物理原理综述（Physiol Meas, Crossref API 验证）
+%  - allenzhengkyriacou2021: PPG 现代方法与应用综述（Crossref API 验证）
+%  - lacaita1989spad: SPAD 历史性经典（Electronics Letters, Crossref API 验证）
+%  - zappa2005spada:  SPAD 阵列综述（IEEE Photon Tech Lett, Crossref API 验证）
+%
+% 已排除的疑似编造/未核实条目（勿再引用）：
+%   10.3390/s24154933（实际是肌肉疲劳应变传感器，非驾驶疲劳）
+%   10.3390/s22145079（HAR 隐私综述，标题-DOI 无法对应）
+%   10.1109/EMBC.2019.8856936（作者名单可疑）
+%   10.3390/s21030794（彩色标记手势，未核实）
+%   所谓 HR+SpO2 规则疲劳阈值论文（元数据无法回证）
+
+% ===== A. 手势识别（颜色传感器复用 / 非接触替代方案）=====
+@article{lien2016soli,
+  author  = {Lien, Jaime and Gillian, Nicholas and Karagozler, M. Emre and Amihood, Patrick and Schwesig, Carsten and Olson, Erik and Raja, Hakim and Poupyrev, Ivan},
+  title   = {Soli: Ubiquitous Gesture Sensing with Millimeter Wave Radar},
+  journal = {ACM Transactions on Graphics},
+  year    = {2016},
+  volume  = {35},
+  number  = {4},
+  doi     = {10.1145/2897824.2925953},
+  url     = {https://doi.org/10.1145/2897824.2925953}
+}
+
+@inproceedings{gupta2012soundwave,
+  author    = {Gupta, Sidhant and Morris, Daniel and Patel, Shwetak N. and Tan, Desney},
+  title     = {SoundWave: Using the Doppler Effect to Sense Gestures},
+  booktitle = {Proceedings of the SIGCHI Conference on Human Factors in Computing Systems},
+  year      = {2012},
+  publisher = {Association for Computing Machinery},
+  url       = {https://www.microsoft.com/en-us/research/project/soundwave-using-the-doppler-effect-to-sense-gestures/}
+}
+
+@inproceedings{breuer2007tofgesture,
+  author    = {Breuer, Peter and Eckes, Christian and M{\"u}ller, Stefan},
+  title     = {Hand Gesture Recognition with a Novel {IR} Time-of-Flight Range Camera---A Pilot Study},
+  booktitle = {Computer Vision/Computer Graphics Collaboration Techniques},
+  year      = {2007},
+  publisher = {Springer},
+  doi       = {10.1007/978-3-540-71457-6_25},
+  url       = {https://doi.org/10.1007/978-3-540-71457-6_25}
+}
+
+@article{rautaray2015vision,
+  author  = {Rautaray, Siddharth S. and Agrawal, Anupam},
+  title   = {Vision Based Hand Gesture Recognition for Human Computer Interaction: A Survey},
+  journal = {Artificial Intelligence Review},
+  year    = {2015},
+  volume  = {43},
+  pages   = {1--54},
+  doi     = {10.1007/s10462-012-9356-9},
+  url     = {https://doi.org/10.1007/s10462-012-9356-9}
+}
+
+% ===== B. 边缘/多模态疲劳检测 =====
+@article{sikander2019driver,
+  author  = {Sikander, Ghayoor and Anwar, Shahzad},
+  title   = {Driver Fatigue Detection Systems: A Review},
+  journal = {IEEE Transactions on Intelligent Transportation Systems},
+  year    = {2019},
+  volume  = {20},
+  number  = {6},
+  pages   = {2339--2352},
+  doi     = {10.1109/TITS.2018.2868499},
+  url     = {https://doi.org/10.1109/TITS.2018.2868499}
+}
+
+@article{sahayadhas2012drowsiness,
+  author  = {Sahayadhas, Arun and Sundaraj, Kenneth and Murugappan, Murugappan},
+  title   = {Detecting Driver Drowsiness Based on Sensors: A Review},
+  journal = {Sensors},
+  year    = {2012},
+  volume  = {12},
+  number  = {12},
+  pages   = {16937--16953},
+  doi     = {10.3390/s121216937},
+  url     = {https://doi.org/10.3390/s121216937}
+}
+
+@article{fu2016dynamic,
+  author  = {Fu, Rongrong and Wang, Huacai and Zhao, Wenbo},
+  title   = {Dynamic Driver Fatigue Detection Using Hidden Markov Model in Real Driving Condition},
+  journal = {Expert Systems with Applications},
+  year    = {2016},
+  volume  = {63},
+  pages   = {397--411},
+  doi     = {10.1016/j.eswa.2016.06.042},
+  url     = {https://doi.org/10.1016/j.eswa.2016.06.042}
+}
+
+% ===== C/G. 无接触姿态检测 & 隐私 =====
+@article{amin2016radar,
+  author  = {Amin, Moeness G. and Zhang, Yimin D. and Ahmad, Fauzia and Ho, K. C. Dominic},
+  title   = {Radar Signal Processing for Elderly Fall Detection: The Future for In-Home Monitoring},
+  journal = {IEEE Signal Processing Magazine},
+  year    = {2016},
+  volume  = {33},
+  number  = {2},
+  pages   = {71--80},
+  doi     = {10.1109/MSP.2015.2502784},
+  url     = {https://doi.org/10.1109/MSP.2015.2502784}
+}
+
+@article{ma2019wificsi,
+  author  = {Ma, Yunfei and Zhou, Gang and Wang, Shuangquan},
+  title   = {{WiFi} Sensing with Channel State Information: A Survey},
+  journal = {ACM Computing Surveys},
+  year    = {2019},
+  volume  = {52},
+  number  = {3},
+  doi     = {10.1145/3310194},
+  url     = {https://doi.org/10.1145/3310194}
+}
+
+@article{tan2001chair,
+  author  = {Tan, Hong Z. and Slivovsky, Lynne A. and Pentland, Alex},
+  title   = {A Sensing Chair Using Pressure Distribution Sensors},
+  journal = {IEEE/ASME Transactions on Mechatronics},
+  year    = {2001},
+  volume  = {6},
+  number  = {3},
+  pages   = {261--268},
+  doi     = {10.1109/3516.951364},
+  url     = {https://doi.org/10.1109/3516.951364}
+}
+
+@article{padillalopez2015privacy,
+  author  = {Padilla-L{\'o}pez, Jos{\'e} Ram{\'o}n and Chaaraoui, Alexandros A. and Fl{\'o}rez-Revuelta, Francisco},
+  title   = {Visual Privacy Protection Methods: A Survey},
+  journal = {Expert Systems with Applications},
+  year    = {2015},
+  volume  = {42},
+  number  = {9},
+  pages   = {4177--4195},
+  doi     = {10.1016/j.eswa.2015.01.041},
+  url     = {https://doi.org/10.1016/j.eswa.2015.01.041}
+}
+
+% ===== D. 规则 vs TinyML 权衡 =====
+@article{kallimani2024tinyml,
+  author  = {Kallimani, Rakhee and Pai, Krishna and Raghuwanshi, Prasoon and Iyer, Sridhar and L{\'o}pez, Onel L. A.},
+  title   = {{TinyML}: Tools, Applications, Challenges, and Future Research Directions},
+  journal = {Multimedia Tools and Applications},
+  year    = {2024},
+  doi     = {10.1007/s11042-023-16740-9},
+  url     = {https://doi.org/10.1007/s11042-023-16740-9}
+}
+
+@inproceedings{banbury2021mlperf,
+  author    = {Banbury, Colby and others},
+  title     = {{MLPerf Tiny Benchmark}},
+  booktitle = {Proceedings of the Neural Information Processing Systems Track on Datasets and Benchmarks},
+  year      = {2021},
+  url       = {https://arxiv.org/abs/2106.07597}
+}
+
+@article{lai2018cmsisnn,
+  author  = {Lai, Liangzhen and Suda, Naveen and Chandra, Vikas},
+  title   = {{CMSIS-NN}: Efficient Neural Network Kernels for {Arm Cortex-M CPUs}},
+  journal = {arXiv preprint arXiv:1801.06601},
+  year    = {2018},
+  url     = {https://arxiv.org/abs/1801.06601}
+}
+
+@inproceedings{david2021tflm,
+  author    = {David, Robert and others},
+  title     = {{TensorFlow Lite Micro}: Embedded Machine Learning for {TinyML} Systems},
+  booktitle = {Proceedings of Machine Learning and Systems},
+  year      = {2021},
+  volume    = {3},
+  pages     = {800--811},
+  url       = {https://proceedings.mlsys.org/paper_files/paper/2021/hash/6c44dc73014d66ba49b28d483a8f8b0d-Abstract.html}
+}
+
+@book{warden2019tinyml,
+  author    = {Warden, Pete and Situnayake, Daniel},
+  title     = {{TinyML}: Machine Learning with TensorFlow Lite on Arduino and Ultra-Low-Power Microcontrollers},
+  publisher = {O'Reilly Media},
+  year      = {2019},
+  url       = {https://www.oreilly.com/library/view/tinyml/9781492052036/}
+}
+
+% ===== E. 办公健康干预 & 氛围光反馈 =====
+@article{shrestha2018workplace,
+  author  = {Shrestha, Nipun and others},
+  title   = {Workplace Interventions for Reducing Sitting at Work},
+  journal = {Cochrane Database of Systematic Reviews},
+  year    = {2018},
+  doi     = {10.1002/14651858.CD010912.pub4},
+  url     = {https://doi.org/10.1002/14651858.CD010912.pub4}
+}
+
+@article{healy2013standup,
+  author  = {Healy, Genevieve N. and others},
+  title   = {Reducing Office Workers' Sitting Time: Rationale and Study Design for the Stand Up Victoria Cluster Randomized Trial},
+  journal = {BMC Public Health},
+  year    = {2013},
+  volume  = {13},
+  pages   = {1057},
+  doi     = {10.1186/1471-2458-13-1057},
+  url     = {https://doi.org/10.1186/1471-2458-13-1057}
+}
+
+% ===== F. 久坐健康危害 =====
+@article{biswas2015sedentary,
+  author  = {Biswas, Aviroop and Oh, Paul I. and Faulkner, Guy E. and Bajaj, Ravi R. and Silver, Michael A. and Mitchell, Marc S. and Alter, David A.},
+  title   = {Sedentary Time and Its Association with Risk for Disease Incidence, Mortality, and Hospitalization in Adults: A Systematic Review and Meta-analysis},
+  journal = {Annals of Internal Medicine},
+  year    = {2015},
+  volume  = {162},
+  number  = {2},
+  pages   = {123--132},
+  doi     = {10.7326/M14-1651},
+  url     = {https://doi.org/10.7326/M14-1651}
+}
+
+@article{ekelund2016sitting,
+  author  = {Ekelund, Ulf and Steene-Johannessen, Jostein and Brown, Wendy J. and others},
+  title   = {Does Physical Activity Attenuate, or Even Eliminate, the Detrimental Association of Sitting Time with Mortality? A Harmonised Meta-analysis of Data from More Than 1 Million Men and Women},
+  journal = {The Lancet},
+  year    = {2016},
+  volume  = {388},
+  number  = {10051},
+  pages   = {1302--1310},
+  doi     = {10.1016/S0140-6736(16)30370-1},
+  url     = {https://doi.org/10.1016/S0140-6736(16)30370-1}
+}
+
+@article{patterson2018sedentary,
+  author  = {Patterson, Richard and others},
+  title   = {Sedentary Behaviour and Risk of All-Cause, Cardiovascular and Cancer Mortality, and Incident Type 2 Diabetes: A Systematic Review and Dose Response Meta-analysis},
+  journal = {European Journal of Epidemiology},
+  year    = {2018},
+  volume  = {33},
+  pages   = {811--829},
+  doi     = {10.1007/s10654-018-0380-1},
+  url     = {https://doi.org/10.1007/s10654-018-0380-1}
+}
+
+@article{dempsey2020guidelines,
+  author  = {Dempsey, Paddy C. and others},
+  title   = {New Global Guidelines on Sedentary Behaviour and Health for Adults: Broadening the Behavioural Targets},
+  journal = {International Journal of Behavioral Nutrition and Physical Activity},
+  year    = {2020},
+  volume  = {17},
+  pages   = {151},
+  doi     = {10.1186/s12966-020-01044-0},
+  url     = {https://doi.org/10.1186/s12966-020-01044-0}
+}
+
+% ===== H. 物理光学基础 =====
+@book{bornwolf1999,
+  author    = {Born, Max and Wolf, Emil},
+  title     = {Principles of Optics: Electromagnetic Theory of Propagation, Interference and Diffraction of Light},
+  publisher = {Cambridge University Press},
+  year      = {1999},
+  edition   = {7},
+  address   = {Cambridge, UK},
+  doi       = {10.1017/9781108769914},
+  url       = {https://doi.org/10.1017/9781108769914}
+}
+
+@article{andersonparrish1981,
+  author  = {Anderson, R. Rox and Parrish, John A.},
+  title   = {The Optics of Human Skin},
+  journal = {Journal of Investigative Dermatology},
+  year    = {1981},
+  volume  = {77},
+  number  = {1},
+  pages   = {13--19},
+  doi     = {10.1111/1523-1747.ep12479191},
+  url     = {https://doi.org/10.1111/1523-1747.ep12479191}
+}
+
+@article{allen2007ppg,
+  author  = {Allen, John},
+  title   = {Photoplethysmography and its application in clinical physiological measurement},
+  journal = {Physiological Measurement},
+  year    = {2007},
+  volume  = {28},
+  number  = {3},
+  pages   = {R1--R39},
+  doi     = {10.1088/0967-3334/28/3/R01},
+  url     = {https://doi.org/10.1088/0967-3334/28/3/R01}
+}
+
+@article{allenzhengkyriacou2021,
+  author  = {Allen, John and Zheng, Dingchang and Kyriacou, Panayiotis A.},
+  title   = {Photoplethysmography ({PPG}): state-of-the-art methods and applications},
+  journal = {Physiological Measurement},
+  year    = {2021},
+  volume  = {42},
+  number  = {10},
+  pages   = {100301},
+  doi     = {10.1088/1361-6579/ac2d82},
+  url     = {https://doi.org/10.1088/1361-6579/ac2d82}
+}
+
+@article{lacaita1989spad,
+  author  = {Lacaita, A. and Ghioni, M. and Cova, S.},
+  title   = {Double epitaxy improves single-photon avalanche diode performance},
+  journal = {Electronics Letters},
+  year    = {1989},
+  volume  = {25},
+  number  = {13},
+  pages   = {841--843},
+  doi     = {10.1049/el:19890567},
+  url     = {https://doi.org/10.1049/el:19890567}
+}
+
+@article{zappa2005spada,
+  author  = {Zappa, F. and Gulinatti, A. and Maccagnani, P. and Tisa, S. and Cova, S.},
+  title   = {{SPADA}: single-photon avalanche diode arrays},
+  journal = {IEEE Photonics Technology Letters},
+  year    = {2005},
+  volume  = {17},
+  number  = {3},
+  pages   = {657--659},
+  doi     = {10.1109/LPT.2004.840920},
+  url     = {https://doi.org/10.1109/LPT.2004.840920}
+}
