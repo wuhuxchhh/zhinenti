@@ -50,3 +50,6 @@ competition/_*.txt
 *.jp2
 deepseek_data*/
 
+# 本地 git bundle 备份（仓库快照，不进版本库，避免递归膨胀）
+backups/
+
